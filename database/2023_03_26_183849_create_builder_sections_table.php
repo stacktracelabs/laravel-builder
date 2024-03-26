@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('path')->nullable();
             $table->json('content')->nullable();
             $table->json('builder_data')->nullable();
+            $table->json('fields')->nullable();
             $table->string('locale')->nullable();
             $table->timestamp('published_at')->nullable();
             $table->timestamps();

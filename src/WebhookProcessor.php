@@ -101,37 +101,43 @@ class WebhookProcessor
 
     protected function processPage(array $payload): void
     {
-        $model = Arr::get($payload, 'modelId');
+        $id = Arr::get($payload, 'id');
 
-        if (! $model || ! $this->isModelValid($model)) {
+        if (! $id) {
             return;
         }
 
-        $locale = $this->resolveLocaleForModel($model);
-        $pageId = Arr::get($payload, 'id');
-        if (! $pageId) {
+        $modelId = Arr::get($payload, 'modelId');
+
+        if (! $modelId) {
             return;
         }
 
+        $modelName = $this->resolveModelName($modelId);
+        if (! $modelName) {
+            return;
+        }
+
+        $locale = $this->resolveLocale($payload);
         $url = $this->resolveUrl($payload);
-
         $content = $this->resolveContent($payload);
-
         $isPublished = Arr::get($payload, 'published') == 'published';
-
         $title = Arr::get($payload, 'data.title');
+        $fields = $this->resolveFields($payload);
 
         /** @var \StackTrace\Builder\BuilderPage $page */
-        $page = BuilderPage::query()->firstWhere('page_id', $pageId) ?: new BuilderPage([
-            'page_id' => $pageId,
+        $page = BuilderPage::query()->firstWhere('builder_id', $id) ?: new BuilderPage([
+            'builder_id' => $id,
         ]);
 
         $page->fill([
+            'model' => $modelName,
             'path' => $url,
             'content' => $content,
             'builder_data' => $payload,
             'locale' => $locale,
             'title' => $title,
+            'fields' => $fields,
         ]);
 
         if ($page->isPublished() != $isPublished) {
@@ -143,6 +149,19 @@ class WebhookProcessor
         }
 
         $page->save();
+    }
+
+    protected function resolveFields(array $payload): array
+    {
+        $data = Arr::get($payload, 'data');
+
+        if ($data) {
+            return Arr::except($data, [
+                'blocksString', 'locale', 'themeId', 'title',
+            ]);
+        }
+
+        return [];
     }
 
     protected function resolveContent(array $data): ?array
@@ -200,16 +219,4 @@ class WebhookProcessor
         return null;
     }
 
-    /**
-     * Retrieve page locale for given model.
-     * @deprecated
-     */
-    protected function resolveLocaleForModel(string $model): ?string
-    {
-        if ($model == config('builder.page_model_id')) {
-            return null;
-        }
-
-        return collect(config('builder.localized_page_model_ids'))->flip()->get($model);
-    }
 }

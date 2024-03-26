@@ -7,10 +7,12 @@ namespace StackTrace\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * @property string $page_id
+ * @property string $builder_id
+ * @property string $model
  * @property string|null $path
  * @property array|null $content
  * @property array|null $builder_data
+ * @property array|null $fields
  * @property string|null $locale
  * @property \Carbon\Carbon|null $published_at
  * @property string|null $title
@@ -24,6 +26,7 @@ class BuilderPage extends Model
     protected $casts = [
         'content' => 'array',
         'builder_data' => 'array',
+        'fields' => 'array',
         'published_at' => 'datetime',
     ];
 

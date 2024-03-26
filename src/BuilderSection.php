@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $path
  * @property array|null $content
  * @property array|null $builder_data
+ * @property array|null $fields
  * @property string|null $locale
  * @property \Carbon\Carbon|null $published_at
  * @property string|null $title
