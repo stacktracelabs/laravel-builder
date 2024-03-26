@@ -127,14 +127,6 @@ class Content
     }
 
     /**
-     * Determine if given value is an array of component blocks.
-     */
-    protected function isArrayOfComponentBlocks($blocks): bool
-    {
-        return is_array($blocks) && collect($blocks)->every(fn ($it) => $this->isComponentBlock($it));
-    }
-
-    /**
      * Determine if given structure is a component block.
      */
     protected function isComponentBlock($block): bool
