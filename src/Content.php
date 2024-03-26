@@ -38,6 +38,21 @@ class Content
 
             Arr::set($block, 'component.options.image', $download);
 
+            if ($srcset = Arr::get($block, 'component.options.srcset')) {
+                $newSrcset = collect(explode(',', $srcset))->map(function ($it) {
+                    $it = trim($it);
+
+                    $url = trim(Str::before($it, " "));
+                    $size = trim(Str::after($it, " "));
+
+                    $newUrl = $this->downloadFile($url, "Image");
+
+                    return "$newUrl {$size}";
+                })->join(', ');
+
+                Arr::set($block, 'component.options.srcset', $newSrcset);
+            }
+
             return $block;
         });
 
