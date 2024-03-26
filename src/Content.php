@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Content
 {
@@ -17,6 +18,10 @@ class Content
 
     public function get(): array
     {
+        // Filter pixel block.
+        // TODO: add support for filtering same as map
+        $this->blocks = collect($this->blocks)->filter(fn (array $block) => ! $this->isPixelBlock($block))->all();
+
         // Download images from Image blocks.
         $this->map(function (array $block) {
             if (! $this->isBuilderComponent($block, 'Image')) {
@@ -59,7 +64,7 @@ class Content
     }
 
     /**
-     * Download remote file localy. Public URL to downloaded file is returned.
+     * Download remote file locally. Public URL to downloaded file is returned.
      */
     public function downloadFile(string $url, ?string $context = null): string
     {
@@ -135,11 +140,24 @@ class Content
     }
 
     /**
+     * Determine if given block is a pixel block.
+     */
+    protected function isPixelBlock(array $block): bool
+    {
+        return Str::startsWith(Arr::get($block, 'id'), 'builder-pixel');
+    }
+
+    /**
      * Determine if given block is built-in Builder block with given name.
      */
     protected function isBuilderComponent(array $block, string $name): bool
     {
         return Arr::get($block, '@type') == '@builder.io/sdk:Element' && Arr::get($block, 'component.name') == $name;
+    }
+
+    public static function fromBlocks(array $blocks): static
+    {
+        return new static($blocks);
     }
 
     public static function fromBlocksString(string $blocks): static

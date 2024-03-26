@@ -5,10 +5,11 @@ namespace StackTrace\Builder;
 
 
 use Illuminate\Support\ServiceProvider;
+use StackTrace\Builder\Commands\FetchCommand;
 
 class BuilderServiceProvider extends ServiceProvider
 {
-    public function register()
+    public function register(): void
     {
         $this->loadRoutesFrom(__DIR__.'/../routes/builder.php');
 
@@ -19,4 +20,12 @@ class BuilderServiceProvider extends ServiceProvider
         $this->app->singleton('builder.io', BuilderService::class);
     }
 
+    public function boot(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                FetchCommand::class,
+            ]);
+        }
+    }
 }

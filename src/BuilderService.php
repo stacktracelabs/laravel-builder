@@ -5,9 +5,10 @@ namespace StackTrace\Builder;
 
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Http;
 
 class BuilderService
 {
@@ -119,5 +120,18 @@ class BuilderService
             ->withPath($path)
             ->withoutLocale()
             ->first();
+    }
+
+    /**
+     * Retrieve available models.
+     */
+    public function getModels(): Collection
+    {
+        $response = Http::withHeader("Authorization", "Bearer ".config('builder.private_key'))
+            ->post("https://builder.io/api/v2/admin", [
+                'query' => "query { models { id name } }",
+            ]);
+
+        return $response->collect('data.models');
     }
 }
