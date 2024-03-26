@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property array|null $builder_data
  * @property string|null $locale
  * @property \Carbon\Carbon|null $published_at
+ * @property string|null $title
  *
  * @method static \StackTrace\Builder\BuilderPageQueryBuilder query()
  */

@@ -15,4 +15,11 @@ return [
         'sk' => 'abcdef',
     ],
 
+    // The disk where the Builder assets (images, videos, files) are stored.
+    'storage_disk' => 'public',
+
+    // The folder where the Builder assets (images, videos, files) are stored.
+    // Set to null to store directly on selected disk.
+    'storage_folder' => 'builder',
+
 ];

@@ -37,6 +37,8 @@ class WebhookProcessor
 
         $isPublished = Arr::get($payload, 'published') == 'published';
 
+        $title = Arr::get($payload, 'data.title');
+
         /** @var \StackTrace\Builder\BuilderPage $page */
         $page = BuilderPage::query()->firstWhere('page_id', $pageId) ?: new BuilderPage([
             'page_id' => $pageId,
@@ -47,6 +49,7 @@ class WebhookProcessor
             'content' => $content,
             'builder_data' => $payload,
             'locale' => $locale,
+            'title' => $title,
         ]);
 
         if ($page->isPublished() != $isPublished) {
@@ -64,13 +67,13 @@ class WebhookProcessor
     {
         $blocks = Arr::get($data, 'data.blocksString');
 
-        $blocks = is_string($blocks) ? json_decode($blocks, true) : null;
+        $blocks = is_string($blocks) ? Content::fromBlocksString($blocks) : null;
         $inputs = Arr::get($data, 'data.inputs') ?: [];
 
         if ($blocks) {
             return [
                 'data' => [
-                    'blocks' => $blocks,
+                    'blocks' => $blocks->get(),
                     'inputs' => $inputs,
                 ]
             ];
