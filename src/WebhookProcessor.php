@@ -20,87 +20,12 @@ class WebhookProcessor
             return;
         }
 
-        if (Arr::get($payload, 'meta.kind') == 'page') {
-            $this->processPage($payload);
-        } else if (Arr::get($payload, 'meta.kind') == 'component') {
-            $this->processSection($payload);
-        }
-    }
+        $type = $this->resolveType($payload);
 
-    protected function processSection(array $payload): void
-    {
-        $id = Arr::get($payload, 'id');
-        if (! $id) {
+        if (! $type) {
             return;
         }
 
-        $modelId = Arr::get($payload, 'modelId');
-
-        if (! $modelId) {
-            return;
-        }
-
-        $modelName = $this->resolveModelName($modelId);
-        if (! $modelName) {
-            return;
-        }
-
-        $title = Arr::get($payload, 'name');
-        $path = $this->resolveUrl($payload);
-        $content = $this->resolveContent($payload);
-
-        if (! $content) {
-            return;
-        }
-
-        $locale = $this->resolveLocale($payload);
-
-        $isPublished = Arr::get($payload, 'published') == 'published';
-
-        /** @var \StackTrace\Builder\BuilderSection $section */
-        $section = BuilderSection::query()->firstWhere('builder_id', $id) ?: new BuilderSection([
-            'builder_id' => $id,
-        ]);
-
-        $section->fill([
-            'model' => $modelName,
-            'title' => $title,
-            'path' => $path,
-            'content' => $content,
-            'builder_data' => $payload,
-            'locale' => $locale,
-        ]);
-
-        if ($isPublished != $section->isPublished()) {
-            if ($isPublished) {
-                $section->publish();
-            } else {
-                $section->unpublish();
-            }
-        }
-
-        $section->save();
-    }
-
-    protected function resolveModelName(string $id): ?string
-    {
-        $response = Http::withHeader("Authorization", "Bearer ".config('builder.private_key'))
-            ->post("https://builder.io/api/v2/admin", [
-                'query' => "query { models { id name } }",
-            ]);
-
-        $model = $response->collect('data.models')->firstWhere('id', $id);
-
-        if ($model) {
-            // TODO: Might cache
-            return $model['name'];
-        }
-
-        return null;
-    }
-
-    protected function processPage(array $payload): void
-    {
         $id = Arr::get($payload, 'id');
 
         if (! $id) {
@@ -124,13 +49,16 @@ class WebhookProcessor
         $isPublished = Arr::get($payload, 'published') == 'published';
         $title = Arr::get($payload, 'data.title');
         $fields = $this->resolveFields($payload);
+        $name = Arr::get($payload, 'name');
 
-        /** @var \StackTrace\Builder\BuilderPage $page */
-        $page = BuilderPage::query()->firstWhere('builder_id', $id) ?: new BuilderPage([
+        /** @var \StackTrace\Builder\BuilderContent $page */
+        $page = BuilderContent::query()->firstWhere('builder_id', $id) ?: new BuilderContent([
             'builder_id' => $id,
         ]);
 
         $page->fill([
+            'name' => $name,
+            'type' => $type,
             'model' => $modelName,
             'path' => $url,
             'content' => $content,
@@ -151,13 +79,41 @@ class WebhookProcessor
         $page->save();
     }
 
+    protected function resolveType(array $payload): ?ContentType
+    {
+        if (Arr::get($payload, 'meta.kind') == 'page') {
+            return ContentType::Page;
+        } else if (Arr::get($payload, 'meta.kind') == 'component') {
+            return ContentType::Section;
+        }
+
+        return null;
+    }
+
+    protected function resolveModelName(string $id): ?string
+    {
+        $response = Http::withHeader("Authorization", "Bearer ".config('builder.private_key'))
+            ->post("https://builder.io/api/v2/admin", [
+                'query' => "query { models { id name } }",
+            ]);
+
+        $model = $response->collect('data.models')->firstWhere('id', $id);
+
+        if ($model) {
+            // TODO: Might cache
+            return $model['name'];
+        }
+
+        return null;
+    }
+
     protected function resolveFields(array $payload): array
     {
         $data = Arr::get($payload, 'data');
 
         if ($data) {
             return Arr::except($data, [
-                'blocksString', 'locale', 'themeId', 'title',
+                'blocksString', 'locale', 'themeId', 'title', 'inputs',
             ]);
         }
 

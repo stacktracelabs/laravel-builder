@@ -8,10 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('builder_pages', function (Blueprint $table) {
+        Schema::create('builder_contents', function (Blueprint $table) {
             $table->id();
+            $table->unsignedInteger('type');
             $table->string('builder_id');
             $table->string('model');
+            $table->string('name')->nullable();
             $table->string('title')->nullable();
             $table->string('path')->nullable();
             $table->json('content')->nullable();
@@ -25,6 +27,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('builder_pages');
+        Schema::dropIfExists('builder_contents');
     }
 };

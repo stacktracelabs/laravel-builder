@@ -5,8 +5,10 @@ namespace StackTrace\Builder;
 
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 
 /**
+ * @property \StackTrace\Builder\ContentType $type
  * @property string $builder_id
  * @property string $model
  * @property string|null $path
@@ -17,13 +19,14 @@ use Illuminate\Database\Eloquent\Model;
  * @property \Carbon\Carbon|null $published_at
  * @property string|null $title
  *
- * @method static \StackTrace\Builder\BuilderPageQueryBuilder query()
+ * @method static \StackTrace\Builder\BuilderContentQueryBuilder query()
  */
-class BuilderPage extends Model
+class BuilderContent extends Model
 {
     protected $guarded = false;
 
     protected $casts = [
+        'type' => ContentType::class,
         'content' => 'array',
         'builder_data' => 'array',
         'fields' => 'array',
@@ -56,6 +59,22 @@ class BuilderPage extends Model
 
     public function newEloquentBuilder($query)
     {
-        return new BuilderPageQueryBuilder($query);
+        return new BuilderContentQueryBuilder($query);
+    }
+
+    /**
+     * Retrieve the field value.
+     */
+    public function field(string $name, mixed $default = null): mixed
+    {
+        return Arr::get($this->fields ?: [], $name, $default);
+    }
+
+    /**
+     * Retrieve the field value as boolean.
+     */
+    public function booleanField(string $name, bool $default = false): bool
+    {
+        return filter_var($this->field($name, $default), FILTER_VALIDATE_BOOLEAN);
     }
 }

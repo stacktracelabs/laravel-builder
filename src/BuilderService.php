@@ -20,7 +20,8 @@ class BuilderService
         $fallbackLocale = App::getFallbackLocale();
 
         // Retrieve all sections which can be rendered for given request.
-        return BuilderSection::query()
+        return BuilderContent::query()
+            ->sections()
             ->published()
             ->where(function (Builder $query) use ($request) {
                 $query->whereNull('path')->orWhere('path', Utils::normalizePath($request->path()));
@@ -39,14 +40,14 @@ class BuilderService
             ->groupBy('model')->map(function (Collection $sections) use ($locale, $fallbackLocale) {
                 $localized = $sections->firstWhere('locale', $locale);
 
-                if ($localized instanceof BuilderSection) {
+                if ($localized instanceof BuilderContent) {
                     return $localized;
                 }
 
                 if ($locale != $fallbackLocale) {
                     $fallback = $sections->firstWhere('locale', $fallbackLocale);
 
-                    if ($fallback instanceof BuilderSection) {
+                    if ($fallback instanceof BuilderContent) {
                         return $fallback;
                     }
                 }
@@ -56,7 +57,7 @@ class BuilderService
     }
 
     /**
-     * Resolve editor data from incomming request.
+     * Resolve editor data from incoming request.
      * The request must have path, locale and model parameters set.
      */
     public function resolveEditorFromRequest(Request $request): ?BuilderEditor
@@ -82,35 +83,38 @@ class BuilderService
     }
 
     /**
-     * Resolve page from incomming request.
+     * Resolve page from incoming request.
      */
-    public function resolvePageFromRequest(Request $request): ?BuilderPage
+    public function resolvePageFromRequest(Request $request): ?BuilderContent
     {
         $path = '/'.ltrim($request->path(), '/');
 
-        $localizedPage = BuilderPage::query()
+        $localizedPage = BuilderContent::query()
+            ->pages()
             ->published()
             ->withPath($path)
             ->forLocale(App::getLocale())
             ->first();
 
-        if ($localizedPage instanceof BuilderPage) {
+        if ($localizedPage instanceof BuilderContent) {
             return $localizedPage;
         }
 
         if (App::getLocale() != App::getFallbackLocale()) {
-            $fallbackPage = BuilderPage::query()
+            $fallbackPage = BuilderContent::query()
+                ->pages()
                 ->published()
                 ->withPath($path)
                 ->forLocale(App::getFallbackLocale())
                 ->first();
 
-            if ($fallbackPage instanceof BuilderPage) {
+            if ($fallbackPage instanceof BuilderContent) {
                 return $fallbackPage;
             }
         }
 
-        return BuilderPage::query()
+        return BuilderContent::query()
+            ->pages()
             ->published()
             ->withPath($path)
             ->withoutLocale()

@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @method static \StackTrace\Builder\BuilderPage|null resolvePageFromRequest(Request $request)
+ * @method static \StackTrace\Builder\BuilderContent|null resolvePageFromRequest(Request $request)
  * @method static \StackTrace\Builder\BuilderEditor|null resolveEditorFromRequest(Request $request)
  * @method static \Illuminate\Database\Eloquent\Collection getSectionsForRequest(Request $request)
  */
