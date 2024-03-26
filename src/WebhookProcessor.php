@@ -197,17 +197,6 @@ class WebhookProcessor
         return null;
     }
 
-    /**
-     * Determine if the model is valid.
-     */
-    protected function isModelValid(string $model): bool
-    {
-        return collect(config('builder.localized_page_model_ids'))
-            ->values()
-            ->push(config('builder.page_model_id'))
-            ->contains($model);
-    }
-
     protected function resolveLocale(array $payload): ?string
     {
         $locale = Arr::get($payload, 'data.locale');
