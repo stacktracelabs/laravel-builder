@@ -1,0 +1,56 @@
+{
+    "name": "stacktrace/laravel-builder",
+    "description": "Builder.io integration for Laravel.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "StackTrace\\Builder\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "StackTrace\\Builder\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Peter Stovka",
+            "email": "ps@stacktrace.sk"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require": {
+        "php": "^8.1|^8.2|^8.3",
+        "illuminate/contracts": "^10.0|^11.0",
+        "illuminate/support": "^10.0|^11.0",
+        "illuminate/database": "^10.0|^11.0"
+    },
+    "require-dev": {
+        "fakerphp/faker": "^1.9",
+        "nunomaduro/collision": "^7.0",
+        "orchestra/testbench": "^8.0",
+        "pestphp/pest": "^2.0",
+        "pestphp/pest-plugin-laravel": "^2.0"
+    },
+    "scripts": {
+        "test": "./vendor/bin/pest"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "StackTrace\\Builder\\BuilderServiceProvider"
+            ]
+        },
+        "branch-alias": {
+            "dev-main": "0.1.x-dev"
+        }
+    }
+}

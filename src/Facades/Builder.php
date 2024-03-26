@@ -1,0 +1,20 @@
+<?php
+
+
+namespace StackTrace\Builder\Facades;
+
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Facade;
+
+/**
+ * @method static \StackTrace\Builder\BuilderPage|null resolvePageFromRequest(Request $request)
+ * @method static \StackTrace\Builder\BuilderEditor|null resolveEditorFromRequest(Request $request)
+ */
+class Builder extends Facade
+{
+    protected static function getFacadeAccessor()
+    {
+        return 'builder.io';
+    }
+}
