@@ -3,7 +3,10 @@
 return [
 
     // The Builder.io API key.
-    'api_key' => env('BUILDER_API_KEY'),
+    'api_key' => env('BUILDER_PUBLIC_API_KEY'),
+
+    // The Builder.io private API key.
+    'private_key' => env('BUILDER_PRIVATE_KEY'),
 
     // The Builder model name for pages.
     // This model is considered the default one.
