@@ -62,15 +62,15 @@ class Content
                 return $block;
             }
 
-            $url = Arr::get($block, 'component.options.video');
-
-            if (! $url) {
-                return $block;
+            // Video
+            if ($video = Arr::get($block, 'component.options.video')) {
+                Arr::set($block, 'component.options.video', $this->downloadFile($video, "Video"));
             }
 
-            $download = $this->downloadFile($url, "Video");
-
-            Arr::set($block, 'component.options.video', $download);
+            // Poster
+            if ($poster = Arr::get($block, 'component.options.posterImage')) {
+                Arr::set($block, 'component.options.posterImage', $this->downloadFile($poster, "Video"));
+            }
 
             return $block;
         });
@@ -88,9 +88,25 @@ class Content
         $path = $this->resolveFilePath($hash);
 
         if (! $this->storage()->exists($path)) {
-            $contents = file_get_contents($url);
+            $stream = fopen("php://memory", "r+");
+            fwrite($stream, file_get_contents($url));
+            rewind($stream);
+            $type = mime_content_type($stream);
 
-            $this->storage()->put($path, $contents);
+            // Since Builder does not store file extensions, we have to just guess...
+            if ($type && Str::contains($type, "image/svg")) {
+                $path .= ".svg";
+            } else if ($type == "image/png") {
+                $path .= ".png";
+            } else if ($type == "image/jpeg") {
+                $path .= ".jpeg";
+            } else if ($type == "video/mp4") {
+                $path .= ".mp4";
+            }
+
+            rewind($stream);
+            $this->storage()->put($path, $stream);
+            fclose($stream);
         }
 
         return $this->storage()->url($path);
