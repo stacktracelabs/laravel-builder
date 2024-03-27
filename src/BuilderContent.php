@@ -11,6 +11,7 @@ use Illuminate\Support\Arr;
  * @property \StackTrace\Builder\ContentType $type
  * @property string $builder_id
  * @property string $model
+ * @property string|null $name
  * @property string|null $path
  * @property array|null $content
  * @property array|null $builder_data

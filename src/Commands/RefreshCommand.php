@@ -10,27 +10,34 @@ use StackTrace\Builder\ContentFactory;
 
 class RefreshCommand extends Command
 {
-    protected $signature = 'builder:refresh {content}';
+    protected $signature = 'builder:refresh {content?}';
 
     protected $description = 'Refresh local content from Builder sources.';
 
     public function handle(ContentFactory $factory): int
     {
-        $id = $this->argument('content');
+        if ($id = $this->argument('content')) {
+            /** @var BuilderContent|null $content */
+            $content = is_numeric($id)
+                ? BuilderContent::query()->firstWhere('id', (int) $id)
+                : null;
 
-        /** @var BuilderContent|null $content */
-        $content = is_numeric($id)
-            ? BuilderContent::query()->firstWhere('id', (int) $id)
-            : null;
+            if (! $content) {
+                $this->error("The content with ID [$id] does not exist.");
+                return self::FAILURE;
+            }
 
-        if (! $content) {
-            $this->error("The content with ID [$id] does not exist.");
-            return self::FAILURE;
+            $factory->create($content->builder_data);
+
+            $this->info("✔ Refreshed $content->model => {$content->name}");
+            return self::SUCCESS;
         }
 
-        $factory->create($content->builder_data);
+        BuilderContent::query()->eachById(function (BuilderContent $content) use ($factory) {
+            $factory->create($content->builder_data);
 
-        $this->info("✔ Refreshed [{$content->name}]");
+            $this->info("✔ Refreshed $content->model => {$content->name}");
+        });
 
         return self::SUCCESS;
     }
