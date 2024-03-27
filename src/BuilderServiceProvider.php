@@ -11,11 +11,11 @@ class BuilderServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->loadRoutesFrom(__DIR__.'/../routes/builder.php');
-
         $this->loadMigrationsFrom(__DIR__.'/../database');
 
         $this->mergeConfigFrom(__DIR__.'/../config/builder.php', 'builder');
+
+        $this->loadRoutesFrom(__DIR__.'/../routes/builder.php');
 
         $this->app->singleton('builder.io', BuilderService::class);
     }

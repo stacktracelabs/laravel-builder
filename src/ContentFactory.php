@@ -9,23 +9,7 @@ use StackTrace\Builder\Facades\Builder;
 
 class ContentFactory
 {
-    public function createFromWebhook(array $content): void
-    {
-        $payload = Arr::get($content, 'newValue');
-
-        if (! is_array($payload)) {
-            return;
-        }
-
-        $this->create($payload);
-    }
-
-    public function createFromContentAPI(array $content): void
-    {
-        $this->create($content);
-    }
-
-    protected function create(array $payload): void
+    public function create(array $payload): void
     {
         $type = $this->resolveType($payload);
 

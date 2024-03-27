@@ -33,7 +33,7 @@ class FetchCommand extends Command
             $this->fetchAllModelResults($name)->each(function (array $result) use ($factory) {
                 $name = Arr::get($result, 'name');
 
-                $factory->createFromContentAPI($result);
+                $factory->create($result);
 
                 $this->info("✔ {$name}");
             });

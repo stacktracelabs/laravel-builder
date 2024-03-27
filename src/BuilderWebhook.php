@@ -5,6 +5,7 @@ namespace StackTrace\Builder;
 
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 
 /**
  * @property string $url
@@ -22,4 +23,16 @@ class BuilderWebhook extends Model
         'payload' => 'array',
         'processed_at' => 'datetime',
     ];
+
+    /**
+     * Process the webhook by creating new content.
+     */
+    public function process(ContentFactory $factory): void
+    {
+        $payload = Arr::get($this->payload, 'newValue');
+
+        if (is_array($payload)) {
+            $factory->create($payload);
+        }
+    }
 }

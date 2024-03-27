@@ -10,7 +10,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use StackTrace\Builder\BuilderWebhook;
-use StackTrace\Builder\WebhookProcessor;
+use StackTrace\Builder\ContentFactory;
 
 class ProcessWebhookJob implements ShouldQueue
 {
@@ -20,10 +20,10 @@ class ProcessWebhookJob implements ShouldQueue
         public BuilderWebhook $webhook
     ) { }
 
-    public function handle(WebhookProcessor $processor): void
+    public function handle(ContentFactory $factory): void
     {
         try {
-            $processor->process($this->webhook);
+            $this->webhook->process($factory);
         } catch (\Throwable $e) {
             $this->webhook->exception = $e->getTraceAsString();
         } finally {
