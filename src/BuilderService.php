@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class BuilderService
@@ -69,7 +70,9 @@ class BuilderService
 
         $key = config('builder.api_key');
 
-        $model = $request->input('model');
+        $modelRef = $request->input('model');
+
+        $model = $this->getModelById($modelRef) ?: $this->getModelByName($modelRef);
 
         if (! $model) {
             return null;
@@ -78,7 +81,7 @@ class BuilderService
         return new BuilderEditor(
             apiKey: $key,
             url: $path,
-            model: $model,
+            model: $model->name,
             locale: $locale
         );
     }
@@ -123,7 +126,52 @@ class BuilderService
     }
 
     /**
+     * Retrieve model by its identifier.
+     */
+    public function getModelById(string $id): ?BuilderModel
+    {
+        $apiKey = config('builder.api_key');
+
+        $key = "BuilderModelById:{$id}:{$apiKey}";
+
+        if (Cache::has($key)) {
+            return BuilderModel::fromArray(Cache::get($key));
+        }
+
+        if ($model = $this->getModels()->firstWhere('id', $id)) {
+            Cache::forever($key, $model->toArray());
+
+            return $model;
+        }
+
+        return null;
+    }
+
+    /**
+     * Retrieve model by ids name.
+     */
+    public function getModelByName(string $name): ?BuilderModel
+    {
+        $apiKey = config('builder.api_key');
+
+        $key = "BuilderModelByName:{$name}:{$apiKey}";
+
+        if (Cache::has($key)) {
+            return BuilderModel::fromArray(Cache::get($key));
+        }
+
+        if ($model = $this->getModels()->firstWhere('name', $name)) {
+            Cache::forever($key, $model->toArray());
+
+            return $model;
+        }
+
+        return null;
+    }
+
+    /**
      * Retrieve available models.
+     * @return Collection<int, \StackTrace\Builder\BuilderModel>
      */
     public function getModels(): Collection
     {
@@ -132,6 +180,6 @@ class BuilderService
                 'query' => "query { models { id name } }",
             ]);
 
-        return $response->collect('data.models');
+        return $response->collect('data.models')->map(fn (array $it) => BuilderModel::fromArray($it));
     }
 }

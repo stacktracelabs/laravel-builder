@@ -8,8 +8,8 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
+use StackTrace\Builder\BuilderService;
 use StackTrace\Builder\ContentFactory;
-use StackTrace\Builder\Facades\Builder;
 
 class FetchCommand extends Command
 {
@@ -17,11 +17,11 @@ class FetchCommand extends Command
 
     protected $description = 'Fetch content from Builder.io and save it locally.';
 
-    public function handle(ContentFactory $factory): int
+    public function handle(ContentFactory $factory, BuilderService $builder): int
     {
         $model = $this->argument('model');
 
-        $models = $model ? collect([$model]) : Builder::getModels()->pluck('name');
+        $models = $model ? collect([$model]) : $builder->getModels()->pluck('name');
 
         $models->each(function (string $name, int $idx) use ($factory) {
             if ($idx > 0) {

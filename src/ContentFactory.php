@@ -5,10 +5,13 @@ namespace StackTrace\Builder;
 
 
 use Illuminate\Support\Arr;
-use StackTrace\Builder\Facades\Builder;
 
 class ContentFactory
 {
+    public function __construct(
+        protected BuilderService $builder
+    ) { }
+
     public function create(array $payload): void
     {
         $type = $this->resolveType($payload);
@@ -88,13 +91,7 @@ class ContentFactory
 
     protected function resolveModelName(string $id): ?string
     {
-        $model = Builder::getModels()->firstWhere('id', $id);
-
-        if ($model) {
-            return $model['name'];
-        }
-
-        return null;
+        return $this->builder->getModelById($id)?->name;
     }
 
     protected function resolveFields(array $payload): array
