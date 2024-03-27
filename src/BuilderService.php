@@ -182,4 +182,40 @@ class BuilderService
 
         return $response->collect('data.models')->map(fn (array $it) => BuilderModel::fromArray($it));
     }
+
+    /**
+     * Retrieve all content entries for given model.
+     */
+    public function getContentEntriesByModelName(string $name): Collection
+    {
+        $fetchPage = function (int $offset = 0) use ($name) {
+            $key = config('builder.api_key');
+
+            $url = "https://cdn.builder.io/api/v3/content/{$name}?apiKey={$key}&limit=100";
+
+            if ($offset > 0) {
+                $url .= "&offset={$offset}";
+            }
+
+            return Http::get($url)->collect('results');
+        };
+
+        $total = collect();
+
+        $offset = 0;
+
+        do {
+            $results = $fetchPage($offset);
+
+            if ($results->isEmpty()) {
+                break;
+            }
+
+            $total = $total->merge($results);
+
+            $offset = $total->count();
+        } while (true);
+
+        return $total;
+    }
 }

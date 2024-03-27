@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Illuminate\Support\Collection<int, \StackTrace\Builder\BuilderModel> getModels()
  * @method static \StackTrace\Builder\BuilderModel|null getModelByName(string $name)
  * @method static \StackTrace\Builder\BuilderModel|null getModelById(string $id)
+ * @method static \Illuminate\Support\Collection<int, array> getContentEntriesByModelName(string $name)
  */
 class Builder extends Facade
 {

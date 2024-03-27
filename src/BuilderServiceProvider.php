@@ -6,6 +6,7 @@ namespace StackTrace\Builder;
 
 use Illuminate\Support\ServiceProvider;
 use StackTrace\Builder\Commands\FetchCommand;
+use StackTrace\Builder\Commands\RefreshCommand;
 
 class BuilderServiceProvider extends ServiceProvider
 {
@@ -25,6 +26,7 @@ class BuilderServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 FetchCommand::class,
+                RefreshCommand::class,
             ]);
         }
     }
