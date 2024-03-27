@@ -31,7 +31,7 @@ class BuilderService
             ->where(function (Builder $query) use ($locale, $fallbackLocale) {
                 $query->whereNull('locale');
 
-                if ($locale != $fallbackLocale) {
+                if ($locale != $fallbackLocale && $this->shouldUseFallbackLocale()) {
                     $query->orWhereIn('locale', [$locale, $fallbackLocale]);
                 } else {
                     $query->orWhere('locale', $locale);
@@ -40,16 +40,12 @@ class BuilderService
             ->get()
             // For each model, we select single section.
             ->groupBy('model')->map(function (Collection $sections) use ($locale, $fallbackLocale) {
-                $localized = $sections->firstWhere('locale', $locale);
-
-                if ($localized instanceof BuilderContent) {
+                if ($localized = $sections->firstWhere('locale', $locale)) {
                     return $localized;
                 }
 
-                if ($locale != $fallbackLocale) {
-                    $fallback = $sections->firstWhere('locale', $fallbackLocale);
-
-                    if ($fallback instanceof BuilderContent) {
+                if ($locale != $fallbackLocale && $this->shouldUseFallbackLocale()) {
+                    if ($fallback = $sections->firstWhere('locale', $fallbackLocale)) {
                         return $fallback;
                     }
                 }
@@ -91,38 +87,38 @@ class BuilderService
      */
     public function resolvePageFromRequest(Request $request): ?BuilderContent
     {
-        $path = '/'.ltrim($request->path(), '/');
+        $locale = App::getLocale();
+        $fallbackLocale = App::getFallbackLocale();
 
-        $localizedPage = BuilderContent::query()
+        $pages = BuilderContent::query()
             ->pages()
             ->published()
-            ->withPath($path)
-            ->forLocale(App::getLocale())
-            ->first();
+            ->withPath(Utils::normalizePath($request->path()))
+            ->where(function (Builder $query) use ($locale, $fallbackLocale) {
+                $query->whereNull('locale');
 
-        if ($localizedPage instanceof BuilderContent) {
+                if ($locale != $fallbackLocale && $this->shouldUseFallbackLocale()) {
+                    $query->orWhereIn('locale', [$locale, $fallbackLocale]);
+                } else {
+                    $query->orWhere('locale', $locale);
+                }
+            })
+            ->get();
+
+        // Search for localized page.
+        if ($localizedPage = $pages->firstWhere('locale', $locale)) {
             return $localizedPage;
         }
 
-        if (App::getLocale() != App::getFallbackLocale()) {
-            $fallbackPage = BuilderContent::query()
-                ->pages()
-                ->published()
-                ->withPath($path)
-                ->forLocale(App::getFallbackLocale())
-                ->first();
-
-            if ($fallbackPage instanceof BuilderContent) {
+        // If fallback is enabled, search for fallback locale.
+        if ($locale != $fallbackLocale && $this->shouldUseFallbackLocale()) {
+            if ($fallbackPage = $pages->firstWhere('locale', $fallbackLocale)) {
                 return $fallbackPage;
             }
         }
 
-        return BuilderContent::query()
-            ->pages()
-            ->published()
-            ->withPath($path)
-            ->withoutLocale()
-            ->first();
+        // Default to page without locale.
+        return $pages->firstWhere('locale', null);
     }
 
     /**
@@ -217,5 +213,13 @@ class BuilderService
         } while (true);
 
         return $total;
+    }
+
+    /**
+     * Determine if fallback locale should be used.
+     */
+    protected function shouldUseFallbackLocale(): bool
+    {
+        return config('builder.use_fallback_locale', false);
     }
 }

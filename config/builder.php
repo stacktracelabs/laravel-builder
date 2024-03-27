@@ -21,4 +21,8 @@ return [
     // Set to null to disable authorization.
     // When setting up global webhook for space, add "Authorization" header with random token.
     'webhook_token' => env('BUILDER_WEBHOOK_TOKEN'),
+
+    // Determine if the fallback locale should be used for pages or sections
+    // when no match to current locale has been found.
+    'use_fallback_locale' => false,
 ];
