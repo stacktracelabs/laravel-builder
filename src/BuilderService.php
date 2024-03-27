@@ -68,6 +68,10 @@ class BuilderService
 
         $modelRef = $request->input('model');
 
+        if(! $modelRef) {
+            return null;
+        }
+
         $model = $this->getModelById($modelRef) ?: $this->getModelByName($modelRef);
 
         if (! $model) {
