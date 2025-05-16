@@ -5,6 +5,9 @@ namespace StackTrace\Builder;
 
 
 use Illuminate\Support\Arr;
+use StackTrace\Builder\Events\ContentPublished;
+use StackTrace\Builder\Events\ContentUnpublished;
+use StackTrace\Builder\Events\ContentUpdated;
 
 class ContentFactory
 {
@@ -67,15 +70,25 @@ class ContentFactory
             'fields' => $fields,
         ]);
 
+        $pendingEvent = null;
+
         if ($page->isPublished() != $isPublished) {
             if ($isPublished) {
                 $page->publish();
+                $pendingEvent = new ContentPublished($page);
             } else {
                 $page->unpublish();
+                $pendingEvent = new ContentUnpublished($page);
             }
         }
 
         $page->save();
+
+        event(new ContentUpdated($page));
+
+        if ($pendingEvent != null) {
+            event($pendingEvent);
+        }
     }
 
     protected function resolveType(array $payload): ?ContentType

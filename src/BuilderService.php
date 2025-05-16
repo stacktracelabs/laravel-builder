@@ -10,6 +10,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class BuilderService
 {
@@ -225,5 +226,17 @@ class BuilderService
     protected function shouldUseFallbackLocale(): bool
     {
         return config('builder.use_fallback_locale', false);
+    }
+
+    /**
+     * Determine if the incomming request is from Builder.io
+     */
+    public function isBuilderRequest(): bool
+    {
+        if ($ref = request()->header('Referer')) {
+            return is_string($ref) && Str::contains($ref, 'builder.io');
+        }
+
+        return false;
     }
 }
