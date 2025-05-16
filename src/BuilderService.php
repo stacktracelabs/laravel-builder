@@ -10,6 +10,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class BuilderService
 {
@@ -148,6 +149,36 @@ class BuilderService
     }
 
     /**
+     * Get the content from given model by its ID.
+     *
+     * @param string $model The model name
+     * @param string $contentId The content entry ID
+     * @return array|null
+     */
+    public function getContentById(string $model, string $contentId): ?array
+    {
+        $id = $this->getModelByName($model)->id;
+
+        $response = Http::withHeader("Authorization", "Bearer ".config('builder.private_key'))
+            ->post("https://builder.io/api/v2/admin", [
+                'query' => <<<GQL
+                    query {
+                      model(id: "{$id}") {
+                        content(
+                          contentQuery: {
+                            limit: 1
+                            query: { id: "{$contentId}" }
+                          }
+                        )
+                      }
+                    }
+                GQL,
+            ]);
+
+        return $response->collect('data.model.content')->firstWhere('id', $contentId);
+    }
+
+    /**
      * Retrieve model by ids name.
      */
     public function getModelByName(string $name): ?BuilderModel
@@ -225,5 +256,17 @@ class BuilderService
     protected function shouldUseFallbackLocale(): bool
     {
         return config('builder.use_fallback_locale', false);
+    }
+
+    /**
+     * Determine if the incomming request is from Builder.io
+     */
+    public function isBuilderRequest(): bool
+    {
+        if ($ref = request()->header('Referer')) {
+            return is_string($ref) && Str::contains($ref, 'builder.io');
+        }
+
+        return false;
     }
 }

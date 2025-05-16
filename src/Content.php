@@ -16,14 +16,65 @@ class Content
         protected array $blocks
     ) { }
 
-    public function get(): array
+    /**
+     * Retrieve content blocks.
+     */
+    public function render(): array
     {
-        // Filter pixel block.
+        return $this->blocks;
+    }
+
+    /**
+     * Resolve content symbols.
+     */
+    public function resolveSymbols(): static
+    {
+        $this->mapComponents(function (array $block) {
+            if ($this->isSymbolBlock($block)) {
+                $model = Arr::get($block, 'component.options.symbol.model');
+                $id = Arr::get($block, 'component.options.symbol.entry');
+
+                $symbol = BuilderContent::query()
+                    ->published()
+                    ->where('model', $model)
+                    ->where('builder_id', $id)
+                    ->first();
+
+                if ($symbol) {
+                    $content = $symbol->getContent();
+                } else {
+                    $content = [];
+                }
+
+                Arr::set($block, 'component.options.symbol.content', $content);
+
+                return $block;
+            }
+
+            return $block;
+        });
+
+        return $this;
+    }
+
+    /**
+     * Remove Pixel block.
+     */
+    public function removePixel(): static
+    {
         // TODO: add support for filtering same as map
         $this->blocks = collect($this->blocks)->filter(fn (array $block) => ! $this->isPixelBlock($block))->all();
 
+        return $this;
+    }
+
+    /**
+     * Download images locally.
+     */
+    public function downloadImages(): static
+    {
         // Download images from Image blocks.
-        $this->map(function (array $block) {
+        return $this->map(function (array $block) {
             if (! $this->isBuilderComponent($block, 'Image')) {
                 return $block;
             }
@@ -55,9 +106,15 @@ class Content
 
             return $block;
         });
+    }
 
+    /**
+     * Download videos locally.
+     */
+    public function downloadVideos(): static
+    {
         // Download videos from Video blocks.
-        $this->map(function (array $block) {
+        return $this->map(function (array $block) {
             if (! $this->isBuilderComponent($block, 'Video')) {
                 return $block;
             }
@@ -74,14 +131,12 @@ class Content
 
             return $block;
         });
-
-        return $this->blocks;
     }
 
     /**
      * Download remote file locally. Public URL to downloaded file is returned.
      */
-    public function downloadFile(string $url, ?string $context = null): string
+    protected function downloadFile(string $url, ?string $context = null): string
     {
         $hash = sha1($context ? $context . ':' . $url : $url);
 
@@ -129,17 +184,61 @@ class Content
     /**
      * Run a callback over each block in a tree.
      */
-    protected function map(Closure $callback): static
+    public function map(Closure $callback): static
     {
-        $this->blocks = $this->processBlock($this->blocks, $callback);
+        $this->blocks = $this->processBlockAndOptions($this->blocks, $callback);
 
         return $this;
     }
 
     /**
+     * Traverse each block of the content.
+     */
+    public function traverse(Closure $callback): static
+    {
+        $this->processBlockAndOptions($this->blocks, $callback);
+
+        return $this;
+    }
+
+    /**
+     * Map each component.
+     */
+    public function mapComponents(Closure $callback): static
+    {
+        if (Arr::has($this->blocks, 'data.blocks')) {
+            Arr::set($this->blocks, 'data.blocks', $this->processComponents(Arr::get($this->blocks, 'data.blocks'), $callback));
+        }
+
+        return $this;
+    }
+
+    /**
+     * Process components and its children.
+     */
+    protected function processComponents($block, Closure $callback): mixed
+    {
+        if (Arr::isList($block) && is_array($block)) {
+            return array_map(fn ($it) => $this->processComponents($it, $callback), $block);
+        } else {
+            if ($this->isComponentBlock($block)) {
+                $processed = $callback($block);
+            } else {
+                $processed = $block;
+            }
+
+            if ($this->hasChildren($processed)) {
+                $processed['children'] = $this->processComponents($processed['children'], $callback);
+            }
+
+            return $processed;
+        }
+    }
+
+    /**
      * Run given callback over each component block, returning mapped blocks.
      */
-    protected function processBlock($something, Closure $callback): mixed
+    protected function processBlockAndOptions($something, Closure $callback): mixed
     {
         if ($this->isComponentBlock($something)) {
             $processed = $callback($something);
@@ -148,7 +247,7 @@ class Content
 
             if ($options) {
                 foreach ($options as $key => $value) {
-                    $options[$key] = $this->processBlock($value, $callback);
+                    $options[$key] = $this->processBlockAndOptions($value, $callback);
                 }
 
                 Arr::set($processed, 'component.options', $options);
@@ -156,7 +255,7 @@ class Content
 
             return $processed;
         } else if (is_array($something)) {
-            return collect($something)->map(fn ($it) => $this->processBlock($it, $callback))->all();
+            return collect($something)->map(fn ($it) => $this->processBlockAndOptions($it, $callback))->all();
         } else {
             return $something;
         }
@@ -165,23 +264,39 @@ class Content
     /**
      * Determine if given structure is a component block.
      */
-    protected function isComponentBlock($block): bool
+    public function isComponentBlock($block): bool
     {
         return is_array($block) && Arr::has($block, '@type') && Arr::has($block, 'component');
     }
 
     /**
+     * Determine if the block has children.
+     */
+    public function hasChildren($block): bool
+    {
+        return is_array($block) && Arr::has($block, '@type') && Arr::has($block, 'children');
+    }
+
+    /**
      * Determine if given block is a pixel block.
      */
-    protected function isPixelBlock(array $block): bool
+    public function isPixelBlock(array $block): bool
     {
         return Str::startsWith(Arr::get($block, 'id'), 'builder-pixel');
     }
 
     /**
+     * Determine whether the block is a Symbol.
+     */
+    public function isSymbolBlock(array $block): bool
+    {
+        return $this->isBuilderComponent($block, 'Symbol');
+    }
+
+    /**
      * Determine if given block is built-in Builder block with given name.
      */
-    protected function isBuilderComponent(array $block, string $name): bool
+    public function isBuilderComponent(array $block, string $name): bool
     {
         return Arr::get($block, '@type') == '@builder.io/sdk:Element' && Arr::get($block, 'component.name') == $name;
     }

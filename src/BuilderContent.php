@@ -78,4 +78,18 @@ class BuilderContent extends Model
     {
         return filter_var($this->field($name, $default), FILTER_VALIDATE_BOOLEAN);
     }
+
+    /**
+     * Get the renderable content.
+     */
+    public function getContent(): array
+    {
+        if ($this->content) {
+            return Content::fromBlocks($this->content)
+                ->resolveSymbols()
+                ->render();
+        }
+
+        return [];
+    }
 }
