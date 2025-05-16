@@ -128,8 +128,10 @@ class ContentFactory
     {
         $symbols = collect();
 
-        Content::fromBlocks($blocks)->traverse(function (array $block) use ($symbols) {
-            if (Arr::get($block, 'component.name') === 'Symbol') {
+        $content = Content::fromBlocks($blocks);
+
+        $content->traverse(function (array $block) use ($symbols, $content) {
+            if ($content->isBuilderComponent($block, 'Symbol')) {
                 $symbols->push($block);
             }
         });
@@ -188,7 +190,11 @@ class ContentFactory
         if ($blocks) {
             return [
                 'data' => [
-                    'blocks' => $blocks->get(),
+                    'blocks' => $blocks
+                        ->removePixel()
+                        ->downloadImages()
+                        ->downloadVideos()
+                        ->render(),
                     'inputs' => $inputs,
                 ]
             ];
