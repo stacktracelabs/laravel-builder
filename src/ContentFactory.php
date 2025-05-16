@@ -5,6 +5,7 @@ namespace StackTrace\Builder;
 
 
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use StackTrace\Builder\Events\ContentPublished;
 use StackTrace\Builder\Events\ContentUnpublished;
 use StackTrace\Builder\Events\ContentUpdated;
@@ -48,6 +49,12 @@ class ContentFactory
             return;
         }
 
+        $symbols = $this->detectSymbols($content);
+
+        if ($symbols->isNotEmpty()) {
+            $this->ensureSymbolsExists($symbols->all());
+        }
+
         $isPublished = Arr::get($payload, 'published') == 'published';
         $title = Arr::get($payload, 'data.title');
         $fields = $this->resolveFields($payload);
@@ -89,6 +96,49 @@ class ContentFactory
         if ($pendingEvent != null) {
             event($pendingEvent);
         }
+    }
+
+    /**
+     * Fetch Symbols from Builder.io if they do not exist.
+     */
+    protected function ensureSymbolsExists(array $symbolBlocks): void
+    {
+        foreach ($symbolBlocks as $block) {
+            $options = Arr::get($block, 'component.options.symbol');
+
+            $id = $options['entry'];
+            $model = $options['model'];
+
+            if (BuilderContent::query()->where('builder_id', $id)->where('model', $model)->exists()) {
+                continue;
+            }
+
+            if ($content = $this->builder->getContentById($model, $id)) {
+                $factory = new static($this->builder);
+
+                $factory->create($content);
+            }
+        }
+    }
+
+    /**
+     * Detect used Symbols from the content.
+     */
+    protected function detectSymbols(array $blocks): Collection
+    {
+        $symbols = collect();
+
+        Content::fromBlocks($blocks)->traverse(function (array $block) use ($symbols) {
+            if (Arr::get($block, 'component.name') === 'Symbol') {
+                $symbols->push($block);
+            }
+        });
+
+        return $symbols->unique(function (array $block) {
+            $options = Arr::get($block, 'component.options.symbol');
+
+            return $options['entry'].':'.$options['model'];
+        })->values();
     }
 
     protected function resolveType(array $payload): ?ContentType

@@ -137,6 +137,16 @@ class Content
     }
 
     /**
+     * Traverse each block of the content.
+     */
+    public function traverse(Closure $callback): static
+    {
+        $this->processBlock($this->blocks, $callback);
+
+        return $this;
+    }
+
+    /**
      * Run given callback over each component block, returning mapped blocks.
      */
     protected function processBlock($something, Closure $callback): mixed

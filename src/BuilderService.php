@@ -149,6 +149,36 @@ class BuilderService
     }
 
     /**
+     * Get the content from given model by its ID.
+     *
+     * @param string $model The model name
+     * @param string $contentId The content entry ID
+     * @return array|null
+     */
+    public function getContentById(string $model, string $contentId): ?array
+    {
+        $id = $this->getModelByName($model)->id;
+
+        $response = Http::withHeader("Authorization", "Bearer ".config('builder.private_key'))
+            ->post("https://builder.io/api/v2/admin", [
+                'query' => <<<GQL
+                    query {
+                      model(id: "{$id}") {
+                        content(
+                          contentQuery: {
+                            limit: 1
+                            query: { id: "{$contentId}" }
+                          }
+                        )
+                      }
+                    }
+                GQL,
+            ]);
+
+        return $response->collect('data.model.content')->firstWhere('id', $contentId);
+    }
+
+    /**
      * Retrieve model by ids name.
      */
     public function getModelByName(string $name): ?BuilderModel
