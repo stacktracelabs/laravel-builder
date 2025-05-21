@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \StackTrace\Builder\BuilderModel|null getModelById(string $id)
  * @method static \Illuminate\Support\Collection<int, array> getContentEntriesByModelName(string $name)
  * @method static boolean isBuilderRequest()
+ * @method static void childComponentOption(string $component, string|array $options)
  */
 class Builder extends Facade
 {

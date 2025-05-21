@@ -12,9 +12,26 @@ use Illuminate\Support\Str;
 
 class Content
 {
+    /**
+     * The Builder instance.
+     */
+    protected ?BuilderService $builder = null;
+
     public function __construct(
         protected array $blocks
     ) { }
+
+    /**
+     * Get the Builder instance.
+     */
+    protected function builder(): BuilderService
+    {
+        if ($this->builder) {
+            return $this->builder;
+        }
+
+        return $this->builder = app(BuilderService::class);
+    }
 
     /**
      * Retrieve content blocks.
@@ -207,28 +224,99 @@ class Content
     public function mapComponents(Closure $callback): static
     {
         if (Arr::has($this->blocks, 'data.blocks')) {
-            Arr::set($this->blocks, 'data.blocks', $this->processComponents(Arr::get($this->blocks, 'data.blocks'), $callback));
+            Arr::set($this->blocks, 'data.blocks', $this->walkComponents(Arr::get($this->blocks, 'data.blocks'), $callback));
         }
 
         return $this;
     }
 
     /**
+     * Resolve array paths which actually exists in given data array based on the path template.
+     */
+    protected function resolveWildcards(array $data, string $path): array
+    {
+        $segments = explode('.', $path);
+
+        $traverse = function ($current, $segments, $resolvedPath = '') use (&$traverse) {
+            if (empty($segments)) {
+                return [$resolvedPath];
+            }
+
+            $segment = array_shift($segments);
+            $results = [];
+
+            if ($segment === '*') {
+                if (!is_array($current)) {
+                    return [];
+                }
+
+                foreach ($current as $key => $value) {
+                    $nextPath = $resolvedPath === '' ? $key : "$resolvedPath.$key";
+                    $results = array_merge($results, $traverse($value, $segments, $nextPath));
+                }
+            } elseif (Str::contains($segment, '*')) {
+                $pattern = '/^' . str_replace('*', '.*', preg_quote($segment, '/')) . '$/';
+
+                if (!is_array($current)) {
+                    return [];
+                }
+
+                foreach ($current as $key => $value) {
+                    if (preg_match($pattern, $key)) {
+                        $nextPath = $resolvedPath === '' ? $key : "$resolvedPath.$key";
+                        $results = array_merge($results, $traverse($value, $segments, $nextPath));
+                    }
+                }
+            } else {
+                if (!is_array($current) || !array_key_exists($segment, $current)) {
+                    return [];
+                }
+
+                $nextPath = $resolvedPath === '' ? $segment : "$resolvedPath.$segment";
+                $results = array_merge($results, $traverse($current[$segment], $segments, $nextPath));
+            }
+
+            return $results;
+        };
+
+        return $traverse($data, $segments);
+    }
+
+    /**
      * Process components and its children.
      */
-    protected function processComponents($block, Closure $callback): mixed
+    protected function walkComponents($block, Closure $callback): mixed
     {
         if (Arr::isList($block) && is_array($block)) {
-            return array_map(fn ($it) => $this->processComponents($it, $callback), $block);
+            return array_map(fn ($it) => $this->walkComponents($it, $callback), $block);
         } else {
             if ($this->isComponentBlock($block)) {
                 $processed = $callback($block);
+
+                if ($name = Arr::get($processed, 'component.name')) {
+                    $childrenOptions = $this->builder()->getChildrenComponentOptions($name);
+
+                    // Check for options which can contain children and walk through these components as well.
+                    if (! empty($childrenOptions) && Arr::has($processed, 'component.options')) {
+                        $options = Arr::get($processed, 'component.options');
+
+                        foreach ($childrenOptions as $option) {
+                            foreach ($this->resolveWildcards($options, $option) as $path) {
+                                if ($value = Arr::get($options, $path)) {
+                                    Arr::set($options, $path, $this->walkComponents($value, $callback));
+                                }
+                            }
+                        }
+
+                        Arr::set($processed, 'component.options', $options);
+                    }
+                }
             } else {
                 $processed = $block;
             }
 
             if ($this->hasChildren($processed)) {
-                $processed['children'] = $this->processComponents($processed['children'], $callback);
+                $processed['children'] = $this->walkComponents($processed['children'], $callback);
             }
 
             return $processed;

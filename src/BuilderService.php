@@ -6,6 +6,7 @@ namespace StackTrace\Builder;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Cache;
@@ -14,6 +15,36 @@ use Illuminate\Support\Str;
 
 class BuilderService
 {
+    /**
+     * List of component options which contain another components.
+     */
+    protected array $componentOptions = [
+        'Columns' => ['columns.*.blocks'],
+    ];
+
+    /**
+     * Register options of the custom components, which can contain children components.
+     * This is necessary for correct symbol resolution when used as child of custom components.
+     */
+    public function childComponentOption(string $component, string|array $options): static
+    {
+        if (! Arr::has($this->componentOptions, $component)) {
+            $this->componentOptions[$component] = [];
+        }
+
+        $this->componentOptions[$component] = array_merge($this->componentOptions[$component], Arr::wrap($options));
+
+        return $this;
+    }
+
+    /**
+     * Get the options of the component, which can contain another children.
+     */
+    public function getChildrenComponentOptions(string $name): array
+    {
+        return Arr::get($this->componentOptions, $name, []);
+    }
+
     /**
      * Retrieve collection of sections for incoming request.
      */

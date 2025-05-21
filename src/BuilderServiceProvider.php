@@ -18,7 +18,8 @@ class BuilderServiceProvider extends ServiceProvider
 
         $this->loadRoutesFrom(__DIR__.'/../routes/builder.php');
 
-        $this->app->singleton('builder.io', BuilderService::class);
+        $this->app->singleton(BuilderService::class);
+        $this->app->alias(BuilderService::class, 'builder.io');
     }
 
     public function boot(): void
